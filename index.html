@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Converter – EPUB till PDF</title>
+  <meta name="description" content="Konvertera EPUB till sökbar PDF direkt i webbläsaren. Ingen fil laddas upp.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>&#128214;</text></svg>">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1 class="wordmark">Converter</h1>
+      <p class="tagline">EPUB till PDF — direkt i webbläsaren</p>
+      <ul class="trust">
+        <li>Allt sker i din webbläsare</li>
+        <li>Ingen fil laddas upp</li>
+        <li>Texten förblir sökbar</li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- Steg 1 -->
+    <section class="step" id="step-load">
+      <div class="step-head">
+        <span class="step-num">1</span>
+        <h2>Ladda din EPUB</h2>
+      </div>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Släpp en EPUB-fil här eller klicka för att välja">
+        <div class="dropzone-inner">
+          <div class="dropzone-icon" aria-hidden="true">⇣</div>
+          <p class="dropzone-title">Släpp en EPUB-fil här</p>
+          <p class="dropzone-sub">eller klicka för att välja en fil · .epub</p>
+        </div>
+        <input type="file" id="file-input" accept=".epub,application/epub+zip" hidden>
+      </div>
+      <p class="hint" id="load-status" role="status"></p>
+    </section>
+
+    <!-- Steg 2 -->
+    <section class="step" id="step-review" hidden>
+      <div class="step-head">
+        <span class="step-num">2</span>
+        <h2>Granska boken</h2>
+      </div>
+      <div class="book-card" id="book-card">
+        <div class="book-cover" id="book-cover" aria-hidden="true"></div>
+        <div class="book-meta">
+          <h3 id="book-title">–</h3>
+          <p id="book-author" class="muted">–</p>
+          <p id="book-stats" class="muted small">–</p>
+          <p id="drm-status" class="badge ok">Ingen DRM upptäckt</p>
+        </div>
+      </div>
+      <details class="chapters">
+        <summary>Innehåll <span id="chapter-count" class="muted"></span></summary>
+        <ol id="chapter-list"></ol>
+      </details>
+    </section>
+
+    <!-- Steg 3 -->
+    <section class="step" id="step-convert" hidden>
+      <div class="step-head">
+        <span class="step-num">3</span>
+        <h2>Ladda ner som PDF</h2>
+      </div>
+      <p class="muted">Layouten skapas om för A4 och interaktiva inslag försvinner, men all text följer med och förblir sökbar — det som behövs för att använda boken i AI-verktyg.</p>
+      <div class="actions">
+        <button class="btn primary" id="btn-pdf">Ladda ner PDF</button>
+        <button class="btn ghost" id="btn-print" title="Öppnar boken som en ren utskriftsvy – välj ”Spara som PDF” i utskriftsdialogen för högsta trohet">Öppna utskriftsvy</button>
+      </div>
+      <div class="progress" id="progress" hidden>
+        <div class="progress-bar" id="progress-bar"></div>
+        <p class="progress-label" id="progress-label">Förbereder …</p>
+      </div>
+      <p class="hint error" id="convert-error" hidden></p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Konvertera bara böcker du har rätt att kopiera. Kopiering för verksamhetens behov kräver normalt stöd i licensvillkor eller tillstånd från förlaget — och DRM-skyddade filer kan (och får) inte konverteras.</p>
+    </div>
+  </footer>
+
+  <script src="vendor/jszip.min.js"></script>
+  <script src="vendor/pdfmake.min.js"></script>
+  <script src="vendor/vfs_fonts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
