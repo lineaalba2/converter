@@ -134,31 +134,121 @@
     return textLines;
   }
 
+  // ---------- Datum- och taltolkning ----------
+  const MONTH_NAMES = { jan: '01', feb: '02', mar: '03', apr: '04', maj: '05', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', okt: '10', oct: '10', nov: '11', dec: '12' };
+
+  function validIso(y, m, d) {
+    const yy = +y, mm = +m, dd = +d;
+    if (yy < 2000 || yy > 2099 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    return yy + '-' + String(mm).padStart(2, '0') + '-' + String(dd).padStart(2, '0');
+  }
+
+  // Datumformat som förekommer på svenska fakturor, i prioritetsordning.
+  const DATE_PATTERNS = [
+    { re: /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/, iso: (m) => validIso(m[1], m[2], m[3]) },
+    { re: /\b(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})\b/, iso: (m) => validIso(m[1], m[2], m[3]) },
+    { re: /\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})\b/, iso: (m) => validIso(m[3], m[2], m[1]) },
+    { re: /\b(\d{1,2})\s+(jan|feb|mar|apr|maj|may|jun|jul|aug|sep|okt|oct|nov|dec)[a-zåäö]*\.?\s+(\d{4})\b/i, iso: (m) => validIso(m[3], MONTH_NAMES[m[2].toLowerCase()], m[1]) },
+    { re: /^(\d{4})(\d{2})(\d{2})\b/, iso: (m) => validIso(m[1], m[2], m[3]) },
+    { re: /^(\d{2})(\d{2})(\d{2})\b/, iso: (m) => validIso('20' + m[1], m[2], m[3]) }
+  ];
+
+  function findLineDate(text) {
+    for (const p of DATE_PATTERNS) {
+      const m = text.match(p.re);
+      if (m) { const iso = p.iso(m); if (iso) return { iso, text: m[0] }; }
+    }
+    return null;
+  }
+
+  // "1 234,56", "1.234,56", "1234.56", "4 600:-", "1 500 kr" → tal
+  function parseAmountToken(str) {
+    const s = String(str).replace(/[\s ]/g, '').replace(/(kr|sek)$/i, '').replace(/:-$/, '');
+    const sep = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+    let n;
+    if (sep > -1 && s.length - sep - 1 >= 1 && s.length - sep - 1 <= 2) {
+      n = parseFloat(s.slice(0, sep).replace(/[^\d]/g, '') + '.' + s.slice(sep + 1));
+    } else {
+      n = parseFloat(s.replace(/[^\d]/g, ''));
+    }
+    return isNaN(n) ? NaN : n;
+  }
+
+  const NUM_TAIL = /(?<![\d.,:])((?:\d{1,3}(?:[ . ]\d{3})+|\d+)(?:[.,]\d{1,2})?)(?:\s*(?:kr|sek|:-|tim(?:mar)?|h|st))?\.?\s*$/i;
+
+  // Plocka upp till `max` tal från radens slut; returnerar talen i radens ordning + texten före dem.
+  function extractTrailingNumbers(text, max) {
+    const nums = [];
+    let rest = text.trim();
+    while (nums.length < max) {
+      const m = rest.match(NUM_TAIL);
+      if (!m) break;
+      const v = parseAmountToken(m[1]);
+      if (isNaN(v)) break;
+      nums.unshift(v);
+      rest = rest.slice(0, rest.length - m[0].length).replace(/[|;,–—-]+\s*$/, '').trim();
+    }
+    return { nums, rest };
+  }
+
+  // Tolka [antal, à-pris, belopp] / [antal, belopp] / [belopp] ur radens avslutande tal.
+  function unitsAndCost(nums) {
+    if (nums.length >= 3) {
+      for (let i = nums.length - 3; i >= Math.max(0, nums.length - 4); i--) {
+        const h = nums[i], rate = nums[i + 1], amt = nums[i + 2];
+        if (h > 0 && h <= 500 && rate > 0 && amt > 0 && Math.abs(h * rate - amt) <= Math.max(1, amt * 0.005)) {
+          return { units: h, unitCost: rate };
+        }
+      }
+    }
+    if (nums.length >= 2) {
+      const h = nums[nums.length - 2], amt = nums[nums.length - 1];
+      if (h > 0 && h <= 100 && amt > h) return { units: h, unitCost: Math.round((amt / h) * 100) / 100 };
+    }
+    const amt = nums[nums.length - 1];
+    if (amt > 0) return { units: 1, unitCost: amt };
+    return null;
+  }
+
+  // Rader som ser ut som summor, betalningsuppgifter eller sidhuvud — aldrig fakturarader.
+  const SKIP_RE = /\b(summa|del\s?summa|subtotal|totalt?|total|moms|vat|att\s+betala|öres(?:utj|avr)|avrundning|netto|brutto|f-?skatt|bankgiro|plusgiro|iban|bic|swift|org\.?\s?nr|betalningsvillkor|förfall|dröjsmål|ocr|fakturadatum|fakturan(?:r|ummer)|invoice\s*(?:no|number|date)|due\s+date|kund\s?nr|sida\s+\d)\b/i;
+
   function guessFromText(textLines) {
-    const all = textLines.join('\n');
     let found = 0;
+    const all = textLines.join('\n');
 
-    // Fakturanummer och datum
-    const invNo = all.match(/faktura(?:nummer|nr)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/-]*)/i);
+    const invNo = all.match(/faktura\s*(?:nummer|nr)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/_-]*)/i)
+      || all.match(/invoice\s*(?:no|number|#)\.?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\/_-]*)/i);
     if (invNo && !$('f-invoice-number').value) { $('f-invoice-number').value = invNo[1]; found++; }
-    const invDate = all.match(/fakturadatum\s*:?\s*(\d{4}-\d{2}-\d{2})/i);
-    if (invDate && !$('f-invoice-date').value) { $('f-invoice-date').value = invDate[1]; found++; }
 
-    // Radkandidater: datum + beskrivning + timmar + belopp
-    const lineRe = /^(\d{4}-\d{2}-\d{2})\s+(.{4,90}?)\s+(\d{1,3}(?:[.,]\d{1,2})?)\s+(?:tim\s+)?(\d{1,3}(?:[ .]\d{3})*(?:[.,]\d{2}))\s*(?:kr)?$/i;
+    if (!$('f-invoice-date').value) {
+      for (const raw of textLines) {
+        if (!/fakturadatum|invoice\s*date/i.test(raw)) continue;
+        const d = findLineDate(raw);
+        if (d) { $('f-invoice-date').value = d.iso; found++; break; }
+      }
+    }
+
+    // Radkandidater: en rad med ett datum, en beskrivning och tal på slutet.
     const defaultRate = parseNum($('f-tax-rate').value);
     const dates = [];
 
     for (const raw of textLines) {
-      const m = raw.match(lineRe);
-      if (!m) continue;
-      const units = parseNum(m[3]);
-      const amount = parseNum(m[4].replace(/[ .](?=\d{3})/g, ''));
-      if (units <= 0 || amount <= 0) continue;
-      dates.push(m[1]);
+      if (SKIP_RE.test(raw)) continue;
+      const d = findLineDate(raw);
+      if (!d) continue;
+      const at = raw.indexOf(d.text);
+      const withoutDate = (raw.slice(0, at) + ' ' + raw.slice(at + d.text.length)).replace(/\s+/g, ' ').trim();
+      const { nums, rest } = extractTrailingNumbers(withoutDate, 4);
+      if (!nums.length) continue;
+      const parsed = unitsAndCost(nums);
+      if (!parsed) continue;
+      const desc = rest.replace(/^[|;:.–—-]+|[|;:–—-]+$/g, '').trim();
+      if (desc.length < 2) continue;
+      dates.push(d.iso);
       lines.push({
-        date: m[1], type: 'F', task: '', actexp: '', tkId: '', tkFirst: '', tkLast: '', tkClass: '',
-        desc: m[2].trim(), units, unitCost: Math.round((amount / units) * 100) / 100, adj: 0, taxRate: defaultRate
+        date: d.iso, type: 'F', task: '', actexp: '', tkId: '', tkFirst: '', tkLast: '', tkClass: '',
+        desc, units: parsed.units, unitCost: parsed.unitCost, adj: 0, taxRate: defaultRate
       });
       found++;
     }
@@ -178,16 +268,37 @@
     try {
       const textLines = await extractPdf(file);
       lines = [];
-      const found = guessFromText(textLines);
-      loadStatus.textContent = found > 0
-        ? 'Klart! ' + lines.length + ' radförslag hittades — granska och komplettera nedan.'
-        : 'PDF:en lästes, men inga rader kunde tolkas automatiskt. Fyll i raderna för hand nedan.';
+      guessFromText(textLines);
+      showExtractedText(textLines);
+      if (lines.length > 0) {
+        loadStatus.textContent = 'Klart! ' + lines.length + ' radförslag hittades — granska och komplettera nedan.';
+      } else if (textLines.join('').length < 40) {
+        loadStatus.textContent = 'PDF:en verkar sakna textlager (troligen inskannad som bild). Texten kan då inte läsas automatiskt — fyll i raderna för hand nedan.';
+      } else {
+        loadStatus.textContent = 'PDF:en lästes, men inga fakturarader kunde tolkas automatiskt. Öppna »Visa text som lästes ur PDF:en« för att se vad verktyget såg, och fyll i raderna för hand nedan.';
+      }
       if (lines.length === 0) addLine();
       showSteps();
     } catch (e) {
       console.error(e);
       loadStatus.textContent = 'Kunde inte läsa PDF:en: ' + e.message;
     }
+  }
+
+  // Felsökningsvy: visar exakt vilken text som lästes ur PDF:en.
+  function showExtractedText(textLines) {
+    let box = $('ledes-extracted');
+    if (!box) {
+      box = document.createElement('details');
+      box.id = 'ledes-extracted';
+      const sum = document.createElement('summary');
+      sum.textContent = 'Visa text som lästes ur PDF:en';
+      box.appendChild(sum);
+      box.appendChild(document.createElement('pre'));
+      loadStatus.insertAdjacentElement('afterend', box);
+    }
+    box.querySelector('pre').textContent = textLines.join('\n') || '(ingen text hittades i PDF:en)';
+    box.open = false;
   }
 
   function showSteps() {
