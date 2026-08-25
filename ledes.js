@@ -174,7 +174,7 @@
     return isNaN(n) ? NaN : n;
   }
 
-  const NUM_TAIL = /(?<![\d.,:])((?:\d{1,3}(?:[ . ]\d{3})+|\d+)(?:[.,]\d{1,2})?)(?:\s*(?:kr|sek|:-|tim(?:mar)?|h|st))?\.?\s*$/i;
+  const NUM_TAIL = /(?<![\d.,:])((?:\d{1,3}(?:[ ., ]\d{3})+|\d+)(?:[.,]\d{1,2})?)(?:\s*(?:kr|sek|:-|tim(?:mar)?|h|st))?\.?\s*$/i;
 
   // Plocka upp till `max` tal från radens slut; returnerar talen i radens ordning + texten före dem.
   function extractTrailingNumbers(text, max) {
@@ -211,7 +211,7 @@
   }
 
   // Rader som ser ut som summor, betalningsuppgifter eller sidhuvud — aldrig fakturarader.
-  const SKIP_RE = /\b(summa|del\s?summa|subtotal|totalt?|total|moms|vat|att\s+betala|öres(?:utj|avr)|avrundning|netto|brutto|f-?skatt|bankgiro|plusgiro|iban|bic|swift|org\.?\s?nr|betalningsvillkor|förfall|dröjsmål|ocr|fakturadatum|fakturan(?:r|ummer)|invoice\s*(?:no|number|date)|due\s+date|kund\s?nr|sida\s+\d)\b/i;
+  const SKIP_RE = /\b(summa|sum|del\s?summa|subtotal|totalt?|total|moms|vat|att\s+betala|öres(?:utj|avr)|avrundning|rounding|netto|brutto|f-?skatt|f-?tax|bankgiro|plusgiro|iban|bic|swift|org\.?\s?nr|betalningsvillkor|payment\s+term|förfall|due\s+date|dröjsmål|ocr|fakturadatum|fakturan(?:r|ummer)|invoice\s*(?:no|number|date)|kund\s?nr|sida\s+\d|page\s+\d)\b/i;
 
   function guessFromText(textLines) {
     let found = 0;
@@ -229,27 +229,62 @@
       }
     }
 
+    // Sidhuvud och sidfot upprepas på flera sidor — aldrig fakturarader.
+    const lineCount = new Map();
+    for (const raw of textLines) lineCount.set(raw, (lineCount.get(raw) || 0) + 1);
+
     // Radkandidater: en rad med ett datum, en beskrivning och tal på slutet.
+    // Många fakturor grupperar raderna under juristens namn och bryter långa
+    // beskrivningar över flera rader — båda hanteras med lite radminne.
     const defaultRate = parseNum($('f-tax-rate').value);
     const dates = [];
+    const NAME_RE = /^\p{Lu}[\p{L}'’.-]+(?:\s+\p{Lu}[\p{L}'’.-]+){1,2}$/u;
+    const TABLE_HEAD_RE = /^(datum|date)\b.*\b(belopp|summa|amount)$/i;
+
+    let pendingName = null; // namnrad som väntar på att bekräftas av en tabell
+    let currentName = null; // timekeeper för raderna som följer
+    let lastLine = null;    // senast tillagda rad (för flerradiga beskrivningar)
 
     for (const raw of textLines) {
-      if (SKIP_RE.test(raw)) continue;
+      if (lineCount.get(raw) >= 3) continue;
+
+      if (TABLE_HEAD_RE.test(raw)) {
+        if (pendingName) { currentName = pendingName; pendingName = null; }
+        lastLine = null;
+        continue;
+      }
+
+      if (SKIP_RE.test(raw)) {
+        if (/\bsum(?:ma)?\b/i.test(raw)) currentName = null; // delsumma avslutar gruppen
+        pendingName = null;
+        lastLine = null;
+        continue;
+      }
+
       const d = findLineDate(raw);
-      if (!d) continue;
+      if (!d) {
+        if (NAME_RE.test(raw)) { pendingName = raw; continue; }
+        if (lastLine) lastLine.desc = (lastLine.desc + ' ' + raw).trim(); // fortsättning på beskrivningen
+        pendingName = null;
+        continue;
+      }
+
       const at = raw.indexOf(d.text);
       const withoutDate = (raw.slice(0, at) + ' ' + raw.slice(at + d.text.length)).replace(/\s+/g, ' ').trim();
       const { nums, rest } = extractTrailingNumbers(withoutDate, 4);
-      if (!nums.length) continue;
-      const parsed = unitsAndCost(nums);
-      if (!parsed) continue;
+      const parsed = nums.length ? unitsAndCost(nums) : null;
       const desc = rest.replace(/^[|;:.–—-]+|[|;:–—-]+$/g, '').trim();
-      if (desc.length < 2) continue;
+      if (!parsed || desc.length < 2) { pendingName = null; continue; }
+
+      if (pendingName) { currentName = pendingName; pendingName = null; }
+      const nameParts = currentName ? currentName.split(/\s+/) : [];
       dates.push(d.iso);
-      lines.push({
-        date: d.iso, type: 'F', task: '', actexp: '', tkId: '', tkFirst: '', tkLast: '', tkClass: '',
+      lastLine = {
+        date: d.iso, type: 'F', task: '', actexp: '', tkId: '',
+        tkFirst: nameParts[0] || '', tkLast: nameParts.slice(1).join(' ') || '', tkClass: '',
         desc, units: parsed.units, unitCost: parsed.unitCost, adj: 0, taxRate: defaultRate
-      });
+      };
+      lines.push(lastLine);
       found++;
     }
 
