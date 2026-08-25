@@ -425,19 +425,31 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 0 0 14px;
-  font-size: 14px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.bulkfill-label {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 .bulkfill input, .bulkfill select {
   padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--card);
+  background: var(--paper);
   color: var(--ink);
   font: inherit;
-  max-width: 11em;
+  font-size: 14px;
 }
+.bulkfill input { width: 7em; }
+.bulkfill select { width: auto; max-width: 14em; }
 
 .fieldbox .muted.small { font-size: 13.5px; margin: 8px 0 4px; }
 

@@ -511,11 +511,13 @@
   $('btn-bulk').addEventListener('click', () => {
     const task = sanitize($('bulk-task').value).toUpperCase();
     const act = sanitize($('bulk-act').value).toUpperCase();
+    const tkId = sanitize($('bulk-tkid').value);
     const cls = $('bulk-class').value;
     lines.forEach((l) => {
       if (l.type === 'IF' || l.type === 'IE') return;
       if (task && !sanitize(l.task)) l.task = task;
       if (act && !sanitize(l.actexp)) l.actexp = act;
+      if (tkId && l.type === 'F' && !sanitize(l.tkId)) l.tkId = tkId;
       if (cls && l.type === 'F' && !sanitize(l.tkClass)) l.tkClass = cls;
     });
     renderLines();
