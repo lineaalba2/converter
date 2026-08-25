@@ -54,8 +54,8 @@
     $('tool-epub').hidden = tool !== 'epub';
     $('tool-ledes').hidden = tool !== 'ledes';
     $('footer-note').textContent = tool === 'ledes'
-      ? 'LEDES-filen skapas lokalt i webbläsaren. Kontrollera alltid summor och koder mot kundens e-faktureringskrav innan filen skickas in.'
-      : 'Konvertera bara böcker du har rätt att kopiera. Kopiering för verksamhetens behov kräver normalt stöd i licensvillkor eller tillstånd från förlaget — och DRM-skyddade filer kan (och får) inte konverteras.';
+      ? 'Kontrollera summor och koder mot kundens e-faktureringskrav innan filen skickas in.'
+      : 'Konvertera bara böcker du har rätt att kopiera.';
   }));
 
   // ---------- Hjälpare ----------
@@ -97,7 +97,7 @@
       PROFILE_KEYS.forEach((k) => { data[k] = $(k).value; });
       localStorage.setItem('ledes-profile', JSON.stringify(data));
       $('btn-save-profile').textContent = 'Sparat ✓';
-      setTimeout(() => { $('btn-save-profile').textContent = 'Spara byråuppgifter i denna webbläsare'; }, 2000);
+      setTimeout(() => { $('btn-save-profile').textContent = 'Spara byråuppgifter'; }, 2000);
     } catch (e) { /* lagring blockerad – ignorera */ }
   });
 
@@ -271,11 +271,11 @@
       guessFromText(textLines);
       showExtractedText(textLines);
       if (lines.length > 0) {
-        loadStatus.textContent = 'Klart! ' + lines.length + ' radförslag hittades — granska och komplettera nedan.';
+        loadStatus.textContent = lines.length + ' radförslag hittades — granska nedan.';
       } else if (textLines.join('').length < 40) {
-        loadStatus.textContent = 'PDF:en verkar sakna textlager (troligen inskannad som bild). Texten kan då inte läsas automatiskt — fyll i raderna för hand nedan.';
+        loadStatus.textContent = 'PDF:en saknar textlager (inskannad?) och kan inte läsas automatiskt — fyll i raderna för hand.';
       } else {
-        loadStatus.textContent = 'PDF:en lästes, men inga fakturarader kunde tolkas automatiskt. Öppna »Visa text som lästes ur PDF:en« för att se vad verktyget såg, och fyll i raderna för hand nedan.';
+        loadStatus.textContent = 'Inga fakturarader kunde tolkas — se den utlästa texten nedan eller fyll i för hand.';
       }
       if (lines.length === 0) addLine();
       showSteps();
@@ -292,7 +292,7 @@
       box = document.createElement('details');
       box.id = 'ledes-extracted';
       const sum = document.createElement('summary');
-      sum.textContent = 'Visa text som lästes ur PDF:en';
+      sum.textContent = 'Visa utläst text';
       box.appendChild(sum);
       box.appendChild(document.createElement('pre'));
       loadStatus.insertAdjacentElement('afterend', box);
@@ -566,7 +566,7 @@
 
     const ok = document.createElement('p');
     ok.className = 'issue-ok';
-    ok.textContent = 'Klart! ' + name + ' har laddats ner (' + lines.length + ' rader).';
+    ok.textContent = name + ' har laddats ner (' + lines.length + ' rader).';
     issuesBox.appendChild(ok);
   });
 

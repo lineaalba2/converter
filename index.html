@@ -12,12 +12,7 @@
   <header class="site-header">
     <div class="wrap">
       <h1 class="wordmark">Converter</h1>
-      <p class="tagline">Byråns filverktyg — direkt i webbläsaren</p>
-      <ul class="trust">
-        <li>Allt sker i din webbläsare</li>
-        <li>Ingen fil laddas upp</li>
-        <li>Fungerar utan externa tjänster</li>
-      </ul>
+      <p class="tagline">Byråns filverktyg — allt sker lokalt i webbläsaren, ingen fil laddas upp</p>
     </div>
   </header>
 
@@ -33,7 +28,7 @@
       <button class="tool-card" id="pick-ledes" data-tool="ledes">
         <span class="tool-icon" aria-hidden="true">🧾</span>
         <span class="tool-name">PDF → LEDES 98BI</span>
-        <span class="tool-desc">Skapa e-fakturafil från en fakturaunderlags-PDF</span>
+        <span class="tool-desc">Skapa e-fakturafil från en faktura-PDF</span>
       </button>
     </nav>
 
@@ -49,7 +44,7 @@
           <div class="dropzone-inner">
             <div class="dropzone-icon" aria-hidden="true">⇣</div>
             <p class="dropzone-title">Släpp en EPUB-fil här</p>
-            <p class="dropzone-sub">eller klicka för att välja en fil · .epub</p>
+            <p class="dropzone-sub">eller klicka för att välja</p>
           </div>
           <input type="file" id="file-input" accept=".epub,application/epub+zip" hidden>
         </div>
@@ -81,7 +76,7 @@
           <span class="step-num">3</span>
           <h2>Ladda ner som PDF</h2>
         </div>
-        <p class="muted">Layouten skapas om för A4 och interaktiva inslag försvinner, men all text följer med och förblir sökbar — det som behövs för att använda boken i AI-verktyg.</p>
+        <p class="muted">All text följer med och förblir sökbar; layouten anpassas till A4.</p>
         <div class="actions">
           <button class="btn primary" id="btn-pdf">Ladda ner PDF</button>
           <button class="btn ghost" id="btn-print" title="Öppnar boken som en ren utskriftsvy – välj ”Spara som PDF” i utskriftsdialogen för högsta trohet">Öppna utskriftsvy</button>
@@ -103,17 +98,16 @@
           <span class="step-num">1</span>
           <h2>Ladda fakturaunderlaget</h2>
         </div>
-        <p class="muted">Släpp en PDF med fakturan eller tidsredovisningen — verktyget läser texten och föreslår fakturarader. Du kan också hoppa över det här steget och fylla i allt för hand.</p>
         <div class="dropzone" id="ledes-dropzone" tabindex="0" role="button" aria-label="Släpp en PDF här eller klicka för att välja">
           <div class="dropzone-inner">
             <div class="dropzone-icon" aria-hidden="true">⇣</div>
-            <p class="dropzone-title">Släpp en PDF här</p>
-            <p class="dropzone-sub">eller klicka för att välja en fil · .pdf</p>
+            <p class="dropzone-title">Släpp faktura-PDF:en här</p>
+            <p class="dropzone-sub">texten läses och fakturarader föreslås automatiskt</p>
           </div>
           <input type="file" id="ledes-file-input" accept=".pdf,application/pdf" hidden>
         </div>
         <div class="actions">
-          <button class="btn ghost" id="ledes-skip">Börja med tom faktura i stället</button>
+          <button class="btn ghost" id="ledes-skip">Fyll i för hand i stället</button>
         </div>
         <p class="hint" id="ledes-load-status" role="status"></p>
       </section>
@@ -152,7 +146,7 @@
             <label>Land (ISO 3)<input type="text" id="f-firm-country" value="SWE" maxlength="3"></label>
           </div>
           <div class="actions">
-            <button class="btn ghost small" id="btn-save-profile" type="button">Spara byråuppgifter i denna webbläsare</button>
+            <button class="btn ghost small" id="btn-save-profile" type="button">Spara byråuppgifter</button>
           </div>
         </details>
 
@@ -180,7 +174,7 @@
           <span class="step-num">3</span>
           <h2>Fakturarader</h2>
         </div>
-        <p class="muted">Typ F = arvode (timmar × timpris), E = utlägg. UTBMS-koder (t.ex. L110, A102, E101) kräver kundens kodlista — fråga kunden vilka koder de vill ha.</p>
+        <p class="muted">F = arvode, E = utlägg. UTBMS-koder anges enligt kundens kodlista.</p>
         <div class="table-scroll">
           <table class="lines-table" id="lines-table">
             <thead>
@@ -220,7 +214,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p id="footer-note">Konvertera bara böcker du har rätt att kopiera. Kopiering för verksamhetens behov kräver normalt stöd i licensvillkor eller tillstånd från förlaget — och DRM-skyddade filer kan (och får) inte konverteras.</p>
+      <p id="footer-note">Konvertera bara böcker du har rätt att kopiera.</p>
     </div>
   </footer>
 
