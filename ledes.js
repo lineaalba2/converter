@@ -233,6 +233,42 @@
     const lineCount = new Map();
     for (const raw of textLines) lineCount.set(raw, (lineCount.get(raw) || 0) + 1);
 
+    // Byråns uppgifter ur sidhuvud/sidfot (fylls bara i när fälten är tomma)
+    const orgNr = all.match(/org\.?\s*nr\.?\s*:?\s*(\d{6}\s?-?\s?\d{4})\b/i);
+    if (orgNr && !$('f-firm-id').value) { $('f-firm-id').value = orgNr[1].replace(/\s/g, ''); found++; }
+    const firmBox = all.match(/\b(Box\s+\d+)\b/i);
+    if (firmBox && !$('f-firm-addr1').value) { $('f-firm-addr1').value = firmBox[1]; found++; }
+    const firmPost = all.match(/\bSE-?(\d{3})\s?(\d{2})\b/);
+    if (firmPost && !$('f-firm-postcode').value) { $('f-firm-postcode').value = firmPost[1] + ' ' + firmPost[2]; found++; }
+
+    // Mottagarblocket: raderna närmast ovanför "Invoice"/"Faktura"-rubriken
+    if (!$('f-client-name').value) {
+      const headIdx = textLines.findIndex((l) => /^(invoice|faktura)\s*$/i.test(l));
+      if (headIdx > 0) {
+        const block = [];
+        for (let i = headIdx - 1; i >= 0 && block.length < 5; i--) {
+          const l = textLines[i];
+          if (lineCount.get(l) >= 3 || SKIP_RE.test(l) || /@|www\.|https?:|org\.?\s*nr/i.test(l)) break;
+          block.unshift(l);
+        }
+        if (block.length >= 2) {
+          const COUNTRIES = { sverige: 'SWE', sweden: 'SWE', norge: 'NOR', norway: 'NOR', danmark: 'DNK', denmark: 'DNK', finland: 'FIN' };
+          const lastWord = block[block.length - 1].toLowerCase().replace(/[^a-zåäö]/g, '');
+          if (COUNTRIES[lastWord]) { $('f-client-country').value = COUNTRIES[lastWord]; block.pop(); }
+          $('f-client-name').value = block.shift(); found++;
+          const postIdx = block.findIndex((l) => /^(?:SE-?)?\d{3}\s?\d{2}\b/.test(l));
+          if (postIdx > -1) {
+            const pm = block[postIdx].match(/^(?:SE-?)?(\d{3})\s?(\d{2})\s*(.*)$/);
+            if (!$('f-client-postcode').value) $('f-client-postcode').value = pm[1] + ' ' + pm[2];
+            if (pm[3] && !$('f-client-city').value) $('f-client-city').value = pm[3];
+            block.splice(postIdx, 1);
+          }
+          if (block[0] && !$('f-client-addr1').value) $('f-client-addr1').value = block[0];
+          if (block[1] && !$('f-client-addr2').value) $('f-client-addr2').value = block[1];
+        }
+      }
+    }
+
     // Radkandidater: en rad med ett datum, en beskrivning och tal på slutet.
     // Många fakturor grupperar raderna under juristens namn och bryter långa
     // beskrivningar över flera rader — båda hanteras med lite radminne.
