@@ -337,7 +337,8 @@
       const amt = (/-/.test(rnd[1]) ? -1 : 1) * parseAmountToken(rnd[1]);
       if (amt) {
         lines.push({
-          date: $('f-invoice-date').value || dates[dates.length - 1] || '', type: 'IF',
+          // Dateras på periodens sista dag — raddatum utanför perioden avvisas av vissa system.
+          date: $('f-billing-end').value || $('f-invoice-date').value || '', type: 'IF',
           task: '', actexp: '', tkId: '', tkFirst: '', tkLast: '', tkClass: '',
           desc: 'Öresavrundning', units: 0, unitCost: 0, adj: amt, taxRate: 0
         });
