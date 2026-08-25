@@ -419,6 +419,28 @@ body {
   .fieldgrid label.span2 { grid-column: span 1; }
 }
 
+/* Massifyllning av radfält */
+.bulkfill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.bulkfill input, .bulkfill select {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  max-width: 11em;
+}
+
+.fieldbox .muted.small { font-size: 13.5px; margin: 8px 0 4px; }
+
 /* Utläst PDF-text (felsökning) */
 #ledes-extracted {
   margin-top: 10px;

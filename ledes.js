@@ -44,7 +44,11 @@
   // ---------- State ----------
   let lines = []; // {date, type, task, actexp, tkId, tkFirst, tkLast, tkClass, desc, units, unitCost, adj, taxRate}
 
-  const TK_CLASSES = ['PARTNR', 'ASSOC', 'OFCNSL', 'PRLGL', 'LGLAST', 'OTH'];
+  const TK_CLASSES = [
+    ['', '–'], ['PARTNR', 'PARTNR – delägare'], ['ASSOC', 'ASSOC – biträdande jurist'],
+    ['OFCNSL', 'OFCNSL – counsel'], ['PRLGL', 'PRLGL – paralegal'],
+    ['LGLAST', 'LGLAST – assistent'], ['OTH', 'OTH – övrig']
+  ];
 
   // ---------- Verktygsväxlare ----------
   const picks = document.querySelectorAll('.tool-card');
@@ -449,12 +453,12 @@
 
       tr.appendChild(cellInput(line, 'date', 'date'));
       tr.appendChild(cellInput(line, 'type', 'text', { select: [['F', 'F – arvode'], ['E', 'E – utlägg'], ['IF', 'IF – justering arvode'], ['IE', 'IE – justering utlägg']] }));
-      tr.appendChild(cellInput(line, 'task', 'text', { width: '5.5em', placeholder: 'L110' }));
-      tr.appendChild(cellInput(line, 'actexp', 'text', { width: '5.5em', placeholder: 'A102/E101' }));
+      tr.appendChild(cellInput(line, 'task', 'text', { width: '5.5em', list: 'utbms-task', placeholder: 'C300' }));
+      tr.appendChild(cellInput(line, 'actexp', 'text', { width: '5.5em', list: 'utbms-act', placeholder: 'A103' }));
       tr.appendChild(cellInput(line, 'tkId', 'text', { width: '5em' }));
       tr.appendChild(cellInput(line, 'tkFirst', 'text', { width: '7em' }));
       tr.appendChild(cellInput(line, 'tkLast', 'text', { width: '7em' }));
-      tr.appendChild(cellInput(line, 'tkClass', 'text', { width: '6em', list: 'tk-classes', placeholder: 'PARTNR' }));
+      tr.appendChild(cellInput(line, 'tkClass', 'text', { select: TK_CLASSES }));
       tr.appendChild(cellInput(line, 'desc', 'text', { width: '18em' }));
       tr.appendChild(cellInput(line, 'units', 'number', { step: '0.25' }));
       tr.appendChild(cellInput(line, 'unitCost', 'number'));
@@ -478,12 +482,6 @@
       tbody.appendChild(tr);
     });
 
-    if (!document.getElementById('tk-classes')) {
-      const dl = document.createElement('datalist');
-      dl.id = 'tk-classes';
-      TK_CLASSES.forEach((c) => { const o = document.createElement('option'); o.value = c; dl.appendChild(o); });
-      document.body.appendChild(dl);
-    }
     updateTotals();
   }
 
@@ -508,6 +506,20 @@
   $('f-tax-rate').addEventListener('input', updateTotals);
   $('f-currency').addEventListener('input', updateTotals);
   $('btn-add-line').addEventListener('click', addLine);
+
+  // Massifyllning: sätter värden där fältet är tomt (justeringsrader lämnas orörda)
+  $('btn-bulk').addEventListener('click', () => {
+    const task = sanitize($('bulk-task').value).toUpperCase();
+    const act = sanitize($('bulk-act').value).toUpperCase();
+    const cls = $('bulk-class').value;
+    lines.forEach((l) => {
+      if (l.type === 'IF' || l.type === 'IE') return;
+      if (task && !sanitize(l.task)) l.task = task;
+      if (act && !sanitize(l.actexp)) l.actexp = act;
+      if (cls && l.type === 'F' && !sanitize(l.tkClass)) l.tkClass = cls;
+    });
+    renderLines();
+  });
 
   // ---------- Validering ----------
   function validate() {
@@ -539,8 +551,9 @@
         if (parseNum(l.units) <= 0) errors.push(n + 'antal timmar måste vara större än 0.');
         if (!sanitize(l.tkId)) errors.push(n + 'timekeeper-ID saknas (krävs för arvodesrader).');
         if (!sanitize(l.tkLast)) errors.push(n + 'timekeeper-namn saknas.');
-        if (!sanitize(l.task)) warnings.push(n + 'UTBMS task-kod saknas — många kunder kräver det (t.ex. L110).');
-        if (!sanitize(l.actexp)) warnings.push(n + 'aktivitetskod saknas (t.ex. A102).');
+        if (!sanitize(l.tkClass)) errors.push(n + 'roll saknas — mottagande system avvisar arvodesrader utan timekeeper classification.');
+        if (!sanitize(l.task)) warnings.push(n + 'UTBMS task-kod saknas — många kunder kräver det (t.ex. C300).');
+        if (!sanitize(l.actexp)) warnings.push(n + 'aktivitetskod saknas (t.ex. A103).');
       }
       if (l.type === 'E' && !sanitize(l.actexp)) warnings.push(n + 'utläggskod saknas (t.ex. E101).');
       if (l.date && ($('f-billing-start').value && l.date < $('f-billing-start').value || $('f-billing-end').value && l.date > $('f-billing-end').value)) {
