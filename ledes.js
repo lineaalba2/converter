@@ -330,6 +330,20 @@
       if (!$('f-billing-start').value) $('f-billing-start').value = dates[0];
       if (!$('f-billing-end').value) $('f-billing-end').value = dates[dates.length - 1];
     }
+
+    // Öresavrundning ("Rounding 0.50") → egen justeringsrad (IF) så att totalen stämmer
+    const rnd = all.match(/\b(?:öres?(?:avrundning|utj(?:ämning)?)|avrundning|rounding)\b[ :]*(-?\d[\d ., ]*\d|\d)/i);
+    if (rnd && lines.length) {
+      const amt = (/-/.test(rnd[1]) ? -1 : 1) * parseAmountToken(rnd[1]);
+      if (amt) {
+        lines.push({
+          date: $('f-invoice-date').value || dates[dates.length - 1] || '', type: 'IF',
+          task: '', actexp: '', tkId: '', tkFirst: '', tkLast: '', tkClass: '',
+          desc: 'Öresavrundning', units: 0, unitCost: 0, adj: amt, taxRate: 0
+        });
+        found++;
+      }
+    }
     return found;
   }
 
@@ -473,16 +487,21 @@
   }
 
   function invoiceTotals() {
-    let net = 0, tax = 0;
-    lines.forEach((l) => { const c = lineCalc(l); net += c.base; tax += c.tax; });
-    return { net, tax, total: net + tax };
+    let net = 0, tax = 0, adj = 0;
+    lines.forEach((l) => {
+      const c = lineCalc(l);
+      if (l.type === 'IF' || l.type === 'IE') adj += c.base; else net += c.base;
+      tax += c.tax;
+    });
+    return { net, tax, adj, total: net + adj + tax };
   }
 
   function updateTotals() {
     const t = invoiceTotals();
     const cur = sanitize($('f-currency').value) || 'SEK';
-    totalsBox.innerHTML = 'Netto: <strong>' + fmt(t.net) + '</strong> · Moms: <strong>' + fmt(t.tax) +
-      '</strong> · Att betala: <strong>' + fmt(t.total) + ' ' + cur + '</strong>';
+    totalsBox.innerHTML = 'Netto: <strong>' + fmt(t.net) + '</strong> · Moms: <strong>' + fmt(t.tax) + '</strong>' +
+      (t.adj ? ' · Justering/avrundning: <strong>' + fmt(t.adj) + '</strong>' : '') +
+      ' · Att betala: <strong>' + fmt(t.total) + ' ' + cur + '</strong>';
   }
 
   $('f-tax-rate').addEventListener('input', updateTotals);
@@ -553,7 +572,7 @@
       CLIENT_TAX_ID: sanitize($('f-client-tax').value),
       MATTER_NAME: sanitize($('f-matter-name').value),
       INVOICE_TAX_TOTAL: money(t.tax),
-      INVOICE_NET_TOTAL: money(t.net),
+      INVOICE_NET_TOTAL: money(t.net + t.adj),
       INVOICE_CURRENCY: cur,
       ACCOUNT_TYPE: $('f-account-type').value,
       LAW_FIRM_NAME: sanitize($('f-firm-name').value),
