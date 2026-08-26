@@ -183,12 +183,23 @@
           <input type="text" id="bulk-tkid" placeholder="TK-ID">
           <select id="bulk-class">
             <option value="">Roll …</option>
-            <option value="PARTNR">PARTNR – delägare</option>
-            <option value="ASSOC">ASSOC – biträdande jurist</option>
-            <option value="OFCNSL">OFCNSL – counsel</option>
-            <option value="PRLGL">PRLGL – paralegal</option>
-            <option value="LGLAST">LGLAST – assistent</option>
-            <option value="OTH">OTH – övrig</option>
+            <optgroup label="Legal Tracker (Serengeti)">
+              <option value="PT">PT – delägare</option>
+              <option value="AS">AS – biträdande jurist</option>
+              <option value="OC">OC – counsel</option>
+              <option value="PL">PL – paralegal</option>
+              <option value="TRANEE">TRANEE – trainee</option>
+              <option value="LGLINT">LGLINT – praktikant</option>
+              <option value="OT">OT – övrig</option>
+            </optgroup>
+            <optgroup label="LEDES-standard">
+              <option value="PARTNR">PARTNR – delägare</option>
+              <option value="ASSOC">ASSOC – biträdande jurist</option>
+              <option value="OFCNSL">OFCNSL – counsel</option>
+              <option value="PRLGL">PRLGL – paralegal</option>
+              <option value="LGLAST">LGLAST – assistent</option>
+              <option value="OTH">OTH – övrig</option>
+            </optgroup>
           </select>
           <button class="btn ghost small" id="btn-bulk" type="button">Fyll i</button>
         </div>

@@ -44,10 +44,23 @@
   // ---------- State ----------
   let lines = []; // {date, type, task, actexp, tkId, tkFirst, tkLast, tkClass, desc, units, unitCost, adj, taxRate}
 
+  // Rollkoder: Serengeti Legal Tracker använder egna koder; LEDES 98B-standardens
+  // behålls för kunder med andra system. Vilka som gäller styr kundens portal.
   const TK_CLASSES = [
-    ['', '–'], ['PARTNR', 'PARTNR – delägare'], ['ASSOC', 'ASSOC – biträdande jurist'],
-    ['OFCNSL', 'OFCNSL – counsel'], ['PRLGL', 'PRLGL – paralegal'],
-    ['LGLAST', 'LGLAST – assistent'], ['OTH', 'OTH – övrig']
+    ['', '–'],
+    ['PT', 'PT – delägare (Legal Tracker)'],
+    ['AS', 'AS – biträdande jurist (Legal Tracker)'],
+    ['OC', 'OC – counsel (Legal Tracker)'],
+    ['PL', 'PL – paralegal (Legal Tracker)'],
+    ['TRANEE', 'TRANEE – trainee (Legal Tracker)'],
+    ['LGLINT', 'LGLINT – praktikant (Legal Tracker)'],
+    ['OT', 'OT – övrig (Legal Tracker)'],
+    ['PARTNR', 'PARTNR – delägare (LEDES-standard)'],
+    ['ASSOC', 'ASSOC – biträdande jurist (LEDES-standard)'],
+    ['OFCNSL', 'OFCNSL – counsel (LEDES-standard)'],
+    ['PRLGL', 'PRLGL – paralegal (LEDES-standard)'],
+    ['LGLAST', 'LGLAST – assistent (LEDES-standard)'],
+    ['OTH', 'OTH – övrig (LEDES-standard)']
   ];
 
   // ---------- Verktygsväxlare ----------
